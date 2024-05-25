@@ -10,6 +10,7 @@ class ProjectList {
 
     const importedNode = document.importNode(this.projectElement.content, true);
     this.element = importedNode.firstElementChild as HTMLFormElement;
+    this.element.id = "user-input";
 
     this.attach();
   }
