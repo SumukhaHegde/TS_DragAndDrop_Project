@@ -12,6 +12,17 @@ class ProjectList {
       "#project-input"
     ) as HTMLTemplateElement;
     this.hostElement = document.querySelector("#app")! as HTMLTemplateElement;
+
+    const importedNode = document.importNode(this.projectElement.content, true);
+    this.element = importedNode.firstElementChild as HTMLFormElement;
+    this.element.id = "user-input";
+
+    this.configureForm();
+
+    this.attach();
+
+    console.log(document.getElementById("title"));
+    console.log("jjahdf");
     this.titleInputElement = document.getElementById(
       "title"
     )! as HTMLInputElement;
@@ -22,21 +33,15 @@ class ProjectList {
     this.personInputElement = document.getElementById(
       "people"
     )! as HTMLInputElement;
-
-    const importedNode = document.importNode(this.projectElement.content, true);
-    this.element = importedNode.firstElementChild as HTMLFormElement;
-    this.element.id = "user-input";
-
-    this.attach();
-    this.configureForm();
   }
 
-  private handleSubmit(e: any) {
-    e.preventDefalut();
+  private handleSubmit(e: Event) {
+    e.preventDefault();
+    console.log(this.titleInputElement);
   }
 
   private configureForm() {
-    document.addEventListener("submit", this.handleSubmit);
+    this.element.addEventListener("submit", this.handleSubmit.bind(this));
   }
 
   private attach() {
