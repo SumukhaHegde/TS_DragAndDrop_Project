@@ -35,9 +35,27 @@ class ProjectList {
     )! as HTMLInputElement;
   }
 
+  private gatherUserInputs(): [string, string, number] | void {
+    const titleValue = this.titleInputElement.value;
+    const descriptionValue = this.descriptionInputElement.value;
+
+    const personValue = this.personInputElement.value;
+
+    if (
+      +personValue === 0 ||
+      titleValue === null ||
+      descriptionValue === null
+    ) {
+      return;
+    } else {
+      return [titleValue, descriptionValue, +personValue];
+    }
+  }
+
   private handleSubmit(e: Event) {
     e.preventDefault();
     console.log(this.titleInputElement);
+    const userInput = this.gatherUserInputs();
   }
 
   private configureForm() {
