@@ -26,6 +26,9 @@ class ProjectState {
       person: person,
     };
     this.projects.push(project);
+    for (const listernerFn of this.listerners) {
+      listernerFn(this.projects);
+    }
   }
 }
 
@@ -35,6 +38,7 @@ class ProjectList {
   hostElement: HTMLTemplateElement;
   projectElement: HTMLTemplateElement;
   element: HTMLElement;
+  assignedProjects: any[] = [];
 
   constructor(private type: "active" | "finished") {
     this.projectElement = document.querySelector(
@@ -46,8 +50,24 @@ class ProjectList {
     this.element = importedNode.firstElementChild as HTMLElement;
     this.element.id = `${type}-projects`;
 
+    projectState.addListerners((projects: any[]) => {
+      this.assignedProjects = projects;
+      this.renderProjects();
+    });
+
     this.attach();
     this.renderContent();
+  }
+  private renderProjects() {
+    const listEl = document.getElementById(
+      `${this.type}-projects-list`
+    )! as HTMLUListElement;
+    for (const prjItm of this.assignedProjects) {
+      const listItem = document.createElement("li");
+      listItem.textContent = prjItm.title;
+
+      listEl.appendChild(listItem);
+    }
   }
 
   private renderContent() {
@@ -122,7 +142,6 @@ class ProjectInput {
   }
   private handleSubmit(e: Event) {
     e.preventDefault();
-    console.log(this.titleInputElement);
     const userInput = this.gatherUserInputs();
     if (Array.isArray(userInput)) {
       const [title, description, person] = userInput;
