@@ -1,3 +1,36 @@
+class ProjectState {
+  private projects: any[] = [];
+  private static instance: ProjectState;
+  private listerners: any[] = [];
+
+  private constructor() {}
+
+  static getInstance() {
+    if (this.instance) {
+      return this.instance;
+    } else {
+      this.instance = new ProjectState();
+      return this.instance;
+    }
+  }
+
+  addListerners(listernerFunction: Function) {
+    this.listerners.push(listernerFunction);
+  }
+
+  addProjects(title: string, description: string, person: number) {
+    const project = {
+      id: Math.random(),
+      title: title,
+      description: description,
+      person: person,
+    };
+    this.projects.push(project);
+  }
+}
+
+const projectState = ProjectState.getInstance();
+
 class ProjectList {
   hostElement: HTMLTemplateElement;
   projectElement: HTMLTemplateElement;
@@ -11,14 +44,18 @@ class ProjectList {
 
     const importedNode = document.importNode(this.projectElement.content, true);
     this.element = importedNode.firstElementChild as HTMLElement;
-    this.element.id = `${type}-projects-list`;
+    this.element.id = `${type}-projects`;
 
     this.attach();
-
-    this.element.querySelector("h2")!.textContent =
-      `${type}`.toUpperCase() + " PROJECTS LIST";
+    this.renderContent();
   }
 
+  private renderContent() {
+    const listElementId = `${this.type}-projects-list`;
+    this.element.querySelector("ul")!.id = listElementId;
+    this.element.querySelector("h2")!.textContent =
+      `${this.type}`.toUpperCase() + " PROJECTS LIST";
+  }
   private attach() {
     this.hostElement.insertAdjacentElement("beforeend", this.element);
   }
@@ -78,10 +115,20 @@ class ProjectInput {
     }
   }
 
+  private clearInputs() {
+    this.titleInputElement.value = "";
+    this.descriptionInputElement.value = "";
+    this.personInputElement.value = "";
+  }
   private handleSubmit(e: Event) {
     e.preventDefault();
     console.log(this.titleInputElement);
     const userInput = this.gatherUserInputs();
+    if (Array.isArray(userInput)) {
+      const [title, description, person] = userInput;
+      projectState.addProjects(title, description, person);
+      this.clearInputs();
+    }
   }
 
   private configureForm() {
