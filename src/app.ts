@@ -1,6 +1,32 @@
 class ProjectList {
   hostElement: HTMLTemplateElement;
   projectElement: HTMLTemplateElement;
+  element: HTMLElement;
+
+  constructor(private type: "active" | "finished") {
+    this.projectElement = document.querySelector(
+      "#project-list"
+    ) as HTMLTemplateElement;
+    this.hostElement = document.querySelector("#app")! as HTMLTemplateElement;
+
+    const importedNode = document.importNode(this.projectElement.content, true);
+    this.element = importedNode.firstElementChild as HTMLElement;
+    this.element.id = `${type}-projects-list`;
+
+    this.attach();
+
+    this.element.querySelector("h2")!.textContent =
+      `${type}`.toUpperCase() + " PROJECTS LIST";
+  }
+
+  private attach() {
+    this.hostElement.insertAdjacentElement("beforeend", this.element);
+  }
+}
+
+class ProjectInput {
+  hostElement: HTMLTemplateElement;
+  projectElement: HTMLTemplateElement;
   element: HTMLFormElement;
   titleInputElement: HTMLInputElement;
   personInputElement: HTMLInputElement;
@@ -38,14 +64,14 @@ class ProjectList {
   private gatherUserInputs(): [string, string, number] | void {
     const titleValue = this.titleInputElement.value;
     const descriptionValue = this.descriptionInputElement.value;
-
     const personValue = this.personInputElement.value;
 
     if (
-      +personValue === 0 ||
-      titleValue === null ||
-      descriptionValue === null
+      personValue.trim().length === 0 ||
+      titleValue.trim().length === 0 ||
+      descriptionValue.trim().length === 0
     ) {
+      alert("Please enter a value");
       return;
     } else {
       return [titleValue, descriptionValue, +personValue];
@@ -67,4 +93,6 @@ class ProjectList {
   }
 }
 
-const prjectInput = new ProjectList();
+const prjectInput = new ProjectInput();
+const prjectActiveList = new ProjectList("active");
+const projectFinishedList = new ProjectList("finished");
