@@ -1,7 +1,24 @@
+enum projectStatus {
+  Active = "active",
+  Finished = "finished",
+}
+
+type Listerner = (items: Project[]) => void;
+
+class Project {
+  constructor(
+    public id: number,
+    public title: string,
+    public description: string,
+    public person: number,
+    public projectStatus: projectStatus
+  ) {}
+}
+
 class ProjectState {
-  private projects: any[] = [];
+  private projects: Project[] = [];
   private static instance: ProjectState;
-  private listerners: any[] = [];
+  private listerners: Listerner[] = [];
 
   private constructor() {}
 
@@ -19,14 +36,18 @@ class ProjectState {
   }
 
   addProjects(title: string, description: string, person: number) {
-    const project = {
-      id: Math.random(),
-      title: title,
-      description: description,
-      person: person,
-    };
+    const project = new Project(
+      Math.random(),
+      title,
+      description,
+      person,
+      projectStatus.Active
+    );
+
     this.projects.push(project);
     for (const listernerFn of this.listerners) {
+      console.log(this);
+      console.log(listernerFn);
       listernerFn(this.projects);
     }
   }
@@ -38,7 +59,7 @@ class ProjectList {
   hostElement: HTMLTemplateElement;
   projectElement: HTMLTemplateElement;
   element: HTMLElement;
-  assignedProjects: any[] = [];
+  assignedProjects: Project[] = [];
 
   constructor(private type: "active" | "finished") {
     this.projectElement = document.querySelector(
@@ -50,7 +71,7 @@ class ProjectList {
     this.element = importedNode.firstElementChild as HTMLElement;
     this.element.id = `${type}-projects`;
 
-    projectState.addListerners((projects: any[]) => {
+    projectState.addListerners((projects: Project[]) => {
       this.assignedProjects = projects;
       this.renderProjects();
     });
@@ -104,8 +125,6 @@ class ProjectInput {
 
     this.attach();
 
-    console.log(document.getElementById("title"));
-    console.log("jjahdf");
     this.titleInputElement = document.getElementById(
       "title"
     )! as HTMLInputElement;
@@ -161,4 +180,4 @@ class ProjectInput {
 
 const prjectInput = new ProjectInput();
 const prjectActiveList = new ProjectList("active");
-const projectFinishedList = new ProjectList("finished");
+//const projectFinishedList = new ProjectList("finished");
