@@ -3,7 +3,7 @@ enum projectStatus {
   Finished = "finished",
 }
 
-type Listerner = (items: Project[]) => void;
+type Listerner = (items: Project) => void;
 
 class Project {
   constructor(
@@ -16,7 +16,13 @@ class Project {
 }
 
 class ProjectState {
-  private projects: Project[] = [];
+  private projects: Project = {
+    id: 0,
+    title: "",
+    description: "",
+    person: 0,
+    projectStatus: projectStatus.Active,
+  };
   private static instance: ProjectState;
   private listerners: Listerner[] = [];
 
@@ -31,7 +37,8 @@ class ProjectState {
     }
   }
 
-  addListerners(listernerFunction: Function) {
+  addListerners(listernerFunction: Listerner) {
+    console.log(this.listerners);
     this.listerners.push(listernerFunction);
   }
 
@@ -43,10 +50,9 @@ class ProjectState {
       person,
       projectStatus.Active
     );
-
-    this.projects.push(project);
+    console.log(project);
+    this.projects = project;
     for (const listernerFn of this.listerners) {
-      console.log(this);
       console.log(listernerFn);
       listernerFn(this.projects);
     }
@@ -59,7 +65,13 @@ class ProjectList {
   hostElement: HTMLTemplateElement;
   projectElement: HTMLTemplateElement;
   element: HTMLElement;
-  assignedProjects: Project[] = [];
+  assignedProjects: Project | undefined = {
+    id: 0,
+    title: "",
+    description: "",
+    person: 0,
+    projectStatus: projectStatus.Active,
+  };
 
   constructor(private type: "active" | "finished") {
     this.projectElement = document.querySelector(
@@ -71,8 +83,13 @@ class ProjectList {
     this.element = importedNode.firstElementChild as HTMLElement;
     this.element.id = `${type}-projects`;
 
-    projectState.addListerners((projects: Project[]) => {
-      this.assignedProjects = projects;
+    projectState.addListerners((projects: Project) => {
+      let filteredProjects;
+      if (this.type === "active") {
+        filteredProjects = projects;
+      }
+
+      this.assignedProjects = filteredProjects;
       this.renderProjects();
     });
 
@@ -83,10 +100,10 @@ class ProjectList {
     const listEl = document.getElementById(
       `${this.type}-projects-list`
     )! as HTMLUListElement;
-    for (const prjItm of this.assignedProjects) {
-      const listItem = document.createElement("li");
-      listItem.textContent = prjItm.title;
 
+    if (this.assignedProjects !== undefined) {
+      const listItem = document.createElement("li");
+      listItem.textContent = this.assignedProjects.title;
       listEl.appendChild(listItem);
     }
   }
@@ -180,4 +197,4 @@ class ProjectInput {
 
 const prjectInput = new ProjectInput();
 const prjectActiveList = new ProjectList("active");
-//const projectFinishedList = new ProjectList("finished");
+const projectFinishedList = new ProjectList("finished");
