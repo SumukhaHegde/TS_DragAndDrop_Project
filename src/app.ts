@@ -74,10 +74,13 @@ abstract class Component<T extends HTMLElement, U extends HTMLElement> {
     isAtStart: boolean,
     elementId?: string
   ) {
-    this.targetElement = document.querySelector(
+    this.targetElement = document.getElementById(
       templateId
     ) as HTMLTemplateElement;
-    this.hostElement = document.querySelector(hostId)! as T;
+
+    this.hostElement = document.getElementById(hostId)! as T;
+    debugger;
+    console.log(this.hostElement);
 
     const importedNode = document.importNode(this.targetElement.content, true);
     this.element = importedNode.firstElementChild as U;
@@ -87,6 +90,7 @@ abstract class Component<T extends HTMLElement, U extends HTMLElement> {
     this.attach(isAtStart);
   }
   private attach(isBegining: boolean) {
+    debugger;
     this.hostElement.insertAdjacentElement(
       isBegining ? "afterbegin" : "beforeend",
       this.element
@@ -95,6 +99,23 @@ abstract class Component<T extends HTMLElement, U extends HTMLElement> {
 
   abstract configure(): void;
   abstract renderContent(): void;
+}
+
+class ProjectItem extends Component<HTMLUListElement, HTMLLIElement> {
+  private project: Project;
+  constructor(hostId: string, project: Project) {
+    super("single-project", hostId, false, project.id.toString());
+    this.project = project;
+    this.configure();
+    this.renderContent();
+  }
+  configure() {}
+  renderContent() {
+    this.element.querySelector("h2")!.textContent = this.project.title;
+    this.element.querySelector("h3")!.textContent =
+      this.project.person.toString();
+    this.element.querySelector("p")!.textContent = this.project.description;
+  }
 }
 
 class ProjectList extends Component<HTMLTemplateElement, HTMLElement> {
@@ -107,7 +128,7 @@ class ProjectList extends Component<HTMLTemplateElement, HTMLElement> {
   };
 
   constructor(private type: "active" | "finished") {
-    super("#project-list", "#app", false, `${type}-projects`);
+    super("project-list", "app", false, `${type}-projects`);
 
     this.configure();
 
@@ -131,9 +152,12 @@ class ProjectList extends Component<HTMLTemplateElement, HTMLElement> {
     )! as HTMLUListElement;
 
     if (this.assignedProjects !== undefined) {
-      const listItem = document.createElement("li");
-      listItem.textContent = this.assignedProjects.title;
-      listEl.appendChild(listItem);
+      debugger;
+      console.log(this.element.querySelector("ul")!.id);
+      new ProjectItem(
+        this.element.querySelector("ul")!.id,
+        this.assignedProjects
+      );
     }
   }
 
@@ -152,7 +176,7 @@ class ProjectInput extends Component<HTMLTemplateElement, HTMLFormElement> {
   descriptionInputElement: HTMLInputElement;
 
   constructor() {
-    super("#project-input", "#app", true, "user-input");
+    super("project-input", "app", true, "user-input");
 
     this.configure();
 
