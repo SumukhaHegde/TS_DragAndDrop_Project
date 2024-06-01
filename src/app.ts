@@ -1,9 +1,21 @@
+//drop and drop interfaces
+interface Dragrable {
+  dragStartHandler(event: DragEvent): void;
+  dragEndHandler(event: DragEvent): void;
+}
+
+interface DragTarget {
+  dragOverHandler(event: DragEvent): void;
+  dropHandler(event: DragEvent): void;
+  dragLeaveHandler(event: DragEvent): void;
+}
+
 enum projectStatus {
   Active = "active",
   Finished = "finished",
 }
 
-type Listerner<T> = (items: T) => void;
+type Listerner<T> = (items: T[]) => void;
 
 class State<T> {
   protected listerners: Listerner<T>[] = [];
@@ -24,13 +36,7 @@ class Project {
 }
 
 class ProjectState extends State<Project> {
-  private projects: Project = {
-    id: 0,
-    title: "",
-    description: "",
-    person: 0,
-    projectStatus: projectStatus.Active,
-  };
+  private projects: Project[] = [];
   private static instance: ProjectState;
 
   private constructor() {
@@ -54,9 +60,21 @@ class ProjectState extends State<Project> {
       person,
       projectStatus.Active
     );
-    this.projects = project;
+    this.projects.push(project);
+    this.updateListerners();
+  }
+
+  moveProject(id: string, newStatus: projectStatus) {
+    const project = this.projects.find((prj) => prj.id.toString() === id);
+    if (project && project.projectStatus !== newStatus) {
+      project.projectStatus = newStatus;
+      this.updateListerners();
+    }
+  }
+
+  private updateListerners() {
     for (const listernerFn of this.listerners) {
-      listernerFn(this.projects);
+      listernerFn(this.projects.slice());
     }
   }
 }
@@ -79,8 +97,6 @@ abstract class Component<T extends HTMLElement, U extends HTMLElement> {
     ) as HTMLTemplateElement;
 
     this.hostElement = document.getElementById(hostId)! as T;
-    debugger;
-    console.log(this.hostElement);
 
     const importedNode = document.importNode(this.targetElement.content, true);
     this.element = importedNode.firstElementChild as U;
@@ -90,7 +106,6 @@ abstract class Component<T extends HTMLElement, U extends HTMLElement> {
     this.attach(isAtStart);
   }
   private attach(isBegining: boolean) {
-    debugger;
     this.hostElement.insertAdjacentElement(
       isBegining ? "afterbegin" : "beforeend",
       this.element
@@ -101,7 +116,10 @@ abstract class Component<T extends HTMLElement, U extends HTMLElement> {
   abstract renderContent(): void;
 }
 
-class ProjectItem extends Component<HTMLUListElement, HTMLLIElement> {
+class ProjectItem
+  extends Component<HTMLUListElement, HTMLLIElement>
+  implements Dragrable
+{
   private project: Project;
   constructor(hostId: string, project: Project) {
     super("single-project", hostId, false, project.id.toString());
@@ -109,7 +127,20 @@ class ProjectItem extends Component<HTMLUListElement, HTMLLIElement> {
     this.configure();
     this.renderContent();
   }
-  configure() {}
+
+  dragStartHandler(event: DragEvent): void {
+    event.dataTransfer!.setData("text/plain", this.project.id.toString());
+    event.dataTransfer!.effectAllowed = "move";
+  }
+
+  dragEndHandler(event: DragEvent): void {}
+  configure() {
+    this.element.addEventListener(
+      "dragstart",
+      this.dragStartHandler.bind(this)
+    );
+    this.element.addEventListener("dragend", this.dragEndHandler.bind(this));
+  }
   renderContent() {
     this.element.querySelector("h2")!.textContent = this.project.title;
     this.element.querySelector("h3")!.textContent =
@@ -118,14 +149,11 @@ class ProjectItem extends Component<HTMLUListElement, HTMLLIElement> {
   }
 }
 
-class ProjectList extends Component<HTMLTemplateElement, HTMLElement> {
-  assignedProjects: Project | undefined = {
-    id: 0,
-    title: "",
-    description: "",
-    person: 0,
-    projectStatus: projectStatus.Active,
-  };
+class ProjectList
+  extends Component<HTMLTemplateElement, HTMLElement>
+  implements DragTarget
+{
+  assignedProjects: Project[] = [];
 
   constructor(private type: "active" | "finished") {
     super("project-list", "app", false, `${type}-projects`);
@@ -135,12 +163,40 @@ class ProjectList extends Component<HTMLTemplateElement, HTMLElement> {
     this.renderContent();
   }
 
+  dragOverHandler(event: DragEvent): void {
+    if (event.dataTransfer && event.dataTransfer.types[0] === "text/plain") {
+      event.preventDefault();
+      const listEl = this.element.querySelector("ul")!;
+      listEl.classList.add("droppable");
+    }
+  }
+  dropHandler(event: DragEvent): void {
+    const prjctId = event.dataTransfer!.getData("text/plain");
+    projectState.moveProject(
+      prjctId,
+      this.type === "active" ? projectStatus.Active : projectStatus.Finished
+    );
+  }
+  dragLeaveHandler(event: DragEvent): void {
+    const listEl = this.element.querySelector("ul")!;
+    listEl.classList.remove("droppable");
+  }
+
   configure(): void {
-    projectState.addListerners((projects: Project) => {
-      let filteredProjects;
-      if (this.type === "active") {
-        filteredProjects = projects;
-      }
+    this.element.addEventListener("dragover", this.dragOverHandler.bind(this));
+    this.element.addEventListener("drop", this.dropHandler.bind(this));
+    this.element.addEventListener(
+      "dragleave",
+      this.dragLeaveHandler.bind(this)
+    );
+
+    projectState.addListerners((projects: Project[]) => {
+      let filteredProjects = projects.filter((prj) => {
+        if ("active" === this.type) {
+          return prj.projectStatus === projectStatus.Active;
+        }
+        return prj.projectStatus === projectStatus.Finished;
+      });
 
       this.assignedProjects = filteredProjects;
       this.renderProjects();
@@ -151,14 +207,18 @@ class ProjectList extends Component<HTMLTemplateElement, HTMLElement> {
       `${this.type}-projects-list`
     )! as HTMLUListElement;
 
-    if (this.assignedProjects !== undefined) {
-      debugger;
-      console.log(this.element.querySelector("ul")!.id);
-      new ProjectItem(
-        this.element.querySelector("ul")!.id,
-        this.assignedProjects
-      );
+    listEl.innerHTML = "";
+
+    for (const prj of this.assignedProjects) {
+      new ProjectItem(this.element.querySelector("ul")!.id, prj);
     }
+
+    // if (this.assignedProjects !== undefined) {
+    //   new ProjectItem(
+    //     this.element.querySelector("ul")!.id,
+    //     this.assignedProjects
+    //   );
+    // }
   }
 
   renderContent() {
